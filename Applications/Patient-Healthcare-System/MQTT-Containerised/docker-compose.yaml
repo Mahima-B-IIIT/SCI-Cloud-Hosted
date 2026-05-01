@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # ---------------- MongoDB ----------------
+  mongo:
+    image: mongo:6
+    container_name: mongo
+    ports:
+      - "27017:27017"
+
+  # ---------------- Mosquitto ----------------
+  mosquitto:
+    image: eclipse-mosquitto
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+    # Note: Mosquitto 2.0+ requires a config file to allow external traffic.
+    # You might need to mount a mosquitto.conf if you can't connect.
+
+  # ---------------- Backend ----------------
+  backend:
+    image: hcmqttbackend:latest
+    container_name: backend
+    environment:
+      - MQTT_BROKER=mosquitto
+      - MONGO_URI=mongodb://mongo:27017
+    ports:
+      - "30005:5000" # Mapping the K8s NodePort 30005 to container port 5000
+    depends_on:
+      - mongo
+      - mosquitto
+
+  # ---------------- Edge Device ----------------
+  edge-device:
+    image: hcmqttedge:latest
+    container_name: edge-device
+    environment:
+      - MQTT_BROKER=mosquitto
+    depends_on:
+      - mosquitto
+
+  # ---------------- Frontend ----------------
+  frontend:
+    image: hcmqttfrontend:latest
+    container_name: frontend
+    ports:
+      - "30007:80" # Mapping the K8s NodePort 30007 to container port 80

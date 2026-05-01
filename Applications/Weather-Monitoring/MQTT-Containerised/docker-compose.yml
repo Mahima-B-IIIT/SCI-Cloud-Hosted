@@ -1,0 +1,107 @@
+services:
+  # THE HUB
+  mqtt-broker:
+    image: eclipse-mosquitto:2.0
+    container_name: mqtt-broker
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    networks:
+      - weather-iot-net
+
+  # THE API
+  cloud-server:
+    build:
+      context: .
+      dockerfile: docker/cloud/Dockerfile
+    container_name: cloud-server
+    ports:
+      - "6001:6001"
+    depends_on:
+      - mqtt-broker
+    networks:
+      - weather-iot-net
+
+  # THE WEB UI
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    container_name: weather-frontend
+    ports:
+      - "8080:80"
+    networks:
+      - weather-iot-net
+
+  # THE EDGES
+  ne-edge:
+    build:
+      context: .
+      dockerfile: docker/edge/Dockerfile
+    environment:
+      - SCRIPT_NAME=ne_edge.py
+    depends_on:
+      - mqtt-broker
+    networks:
+      - weather-iot-net
+
+  sw-edge:
+    build:
+      context: .
+      dockerfile: docker/edge/Dockerfile
+    environment:
+      - SCRIPT_NAME=sw_edge.py
+    depends_on:
+      - mqtt-broker
+    networks:
+      - weather-iot-net
+
+  # THE SENSORS
+  sensor-east:
+    build:
+      context: .
+      dockerfile: docker/sensors/Dockerfile
+    environment:
+      - SENSOR_FILE=east.py
+    depends_on:
+      - mqtt-broker
+    networks:
+      - weather-iot-net
+
+  sensor-north:
+    build:
+      context: .
+      dockerfile: docker/sensors/Dockerfile
+    environment:
+      - SENSOR_FILE=north.py
+    depends_on:
+      - mqtt-broker
+    networks:
+      - weather-iot-net
+
+  sensor-south:
+    build:
+      context: .
+      dockerfile: docker/sensors/Dockerfile
+    environment:
+      - SENSOR_FILE=south.py
+    depends_on:
+      - mqtt-broker
+    networks:
+      - weather-iot-net
+
+  sensor-west:
+    build:
+      context: .
+      dockerfile: docker/sensors/Dockerfile
+    environment:
+      - SENSOR_FILE=west.py
+    depends_on:
+      - mqtt-broker
+    networks:
+      - weather-iot-net
+
+networks:
+  weather-iot-net:
+    driver: bridge

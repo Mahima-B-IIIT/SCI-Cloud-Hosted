@@ -1,0 +1,94 @@
+services:
+  # --- CLOUD LAYER ---
+  cloud-server:
+    build:
+      context: .
+      dockerfile: docker/cloud/Dockerfile
+    ports:
+      - "8000:8000"
+    networks:
+      - weather-net
+
+  # --- EDGE LAYER ---
+  ne-edge:
+    build:
+      context: .
+      dockerfile: docker/edge/Dockerfile
+    environment:
+      - SCRIPT_NAME=ne_edge.py
+    ports:
+      - "5001:5001"
+    networks:
+      - weather-net
+
+  sw-edge:
+    build:
+      context: .
+      dockerfile: docker/edge/Dockerfile
+    environment:
+      - SCRIPT_NAME=sw_edge.py
+    ports:
+      - "5002:5002"
+    networks:
+      - weather-net
+
+  # --- SENSOR LAYER ---
+  sensor-east:
+    build:
+      context: .
+      dockerfile: docker/sensors/Dockerfile
+    environment:
+      - SENSOR_FILE=east.py
+    depends_on:
+      - ne-edge
+    networks:
+      - weather-net
+
+  sensor-north:
+    build:
+      context: .
+      dockerfile: docker/sensors/Dockerfile
+    environment:
+      - SENSOR_FILE=north.py
+    depends_on:
+      - ne-edge
+    networks:
+      - weather-net
+
+  sensor-south:
+    build:
+      context: .
+      dockerfile: docker/sensors/Dockerfile
+    environment:
+      - SENSOR_FILE=south.py
+    depends_on:
+      - sw-edge
+    networks:
+      - weather-net
+
+  sensor-west:
+    build:
+      context: .
+      dockerfile: docker/sensors/Dockerfile
+    environment:
+      - SENSOR_FILE=west.py
+    depends_on:
+      - sw-edge
+    networks:
+      - weather-net
+
+  # --- FRONTEND ---
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - cloud-server
+    networks:
+      - weather-net
+
+networks:
+  weather-net:
+    driver: bridge

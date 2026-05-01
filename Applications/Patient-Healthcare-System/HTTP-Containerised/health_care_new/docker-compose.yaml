@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  # 1. MongoDB
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+
+  # 2. Ingestion Server
+  ingestion-app:
+    image: ingestion-app:latest
+    container_name: ingestion-app
+    ports:
+      - "5001:5001"
+    depends_on:
+      - mongodb
+
+  # 3. API Server (Exposed via LoadBalancer equivalent)
+  api-app:
+    image: api-app:latest
+    container_name: api-app
+    ports:
+      - "5000:5000" # Map host 5000 to container 5000
+    depends_on:
+      - mongodb
+
+  # 4. Gateway (Outbound only, no ports exposed)
+  gateway-app:
+    image: gateway-app:latest
+    container_name: gateway-app
+    depends_on:
+      - ingestion-app
+
+  # 5. Frontend (Exposed via LoadBalancer equivalent)
+  frontend-app:
+    image: frontend-app:latest
+    container_name: frontend-app
+    ports:
+      - "8081:80" # Map host 8081 to container 80 as per your K8s service
